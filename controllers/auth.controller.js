@@ -55,50 +55,28 @@ const login = async (req, res) => {
 
 const protect = async (req, res, next) => {
   let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     token = req.headers.authorization.split(" ")[1];
   }
+  
   if (!token) {
-    return next(
-      new ApiError(
-        "You are not login, Please login to get access this route",
-        401
-      )
-    );
+    return res.status(401).json({ message: "You are not logged in. Please login to access this route" });
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-
-  const currentUser = await User.findById(decoded.userId);
-  if (!currentUser) {
-    return next(
-      new ApiError(
-        "The user that belong to this token does no longer exist",
-        401
-      )
-    );
-  }
-
-  if (currentUser.passwordChangedAt) {
-    const passChangedTimestamp = parseInt(
-      currentUser.passwordChangedAt.getTime() / 1000,
-      10
-    );
-    if (passChangedTimestamp > decoded.iat) {
-      return next(
-        new ApiError(
-          "User recently changed his password. please login again..",
-          401
-        )
-      );
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    const currentUser = await User.findById(decoded.userId);
+    
+    if (!currentUser) {
+      return res.status(401).json({ message: "The user that belongs to this token no longer exists" });
     }
+    
+    req.user = currentUser;
+    next();
+  } catch (error) {
+    console.error(error);
+    return res.status(401).json({ message: "Invalid token" });
   }
-
-  req.user = currentUser;
-  next();
 };
 
 module.exports = {

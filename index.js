@@ -8,6 +8,7 @@ dbConnection();
 app.use(express.json());
 
 app.use("/api/auth", require("./routers/auth.router"));
+app.use("/api/user", require("./routers/user.router"));
 
 const PORT = process.env.PORT || 9000;
 app.listen(PORT, () => {
